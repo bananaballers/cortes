@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hall of Fame | CONQUEST</title>
+    <script src="../style_baked.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,700;1,400&family=Outfit:wght@300;400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 80px 20px;
+            background: radial-gradient(circle at center, #1a1a1a 0%, #050505 100%);
+        }
+
+        .ranking-container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--panel-bg);
+            border: 1px solid var(--primary);
+            padding: 60px;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.9);
+            position: relative;
+            margin-bottom: 40px;
+        }
+
+        .ranking-container::before {
+            content: "";
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            right: 5px;
+            bottom: 5px;
+            border: 1px solid rgba(197, 160, 89, 0.2);
+            pointer-events: none;
+        }
+
+        h1 {
+            font-family: var(--font-heading);
+            color: var(--primary);
+            font-size: 4rem;
+            text-align: center;
+            margin-bottom: 10px;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-size: 0.9rem;
+            margin-bottom: 50px;
+        }
+
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: var(--font-body);
+        }
+
+        .leaderboard-table th {
+            text-align: left;
+            padding: 15px;
+            color: var(--primary);
+            border-bottom: 2px solid var(--primary);
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+        }
+
+        .leaderboard-table td {
+            padding: 20px 15px;
+            border-bottom: 1px solid #222;
+            font-size: 1.1rem;
+        }
+
+        .rank-col { width: 10%; font-family: var(--font-heading); font-style: italic; color: var(--primary); }
+        .name-col { width: 60%; }
+        .score-col { width: 30%; font-family: var(--font-heading); font-weight: 700; color: var(--primary); text-align: right; }
+
+        .top-3 {
+            background: rgba(197, 160, 89, 0.05);
+        }
+
+        .btn-back {
+            display: inline-block;
+            text-decoration: none;
+            margin-top: 40px;
+            transition: 0.3s;
+        }
+
+        #loading-overlay {
+            text-align: center;
+            padding: 40px;
+            color: var(--primary);
+            font-family: var(--font-heading);
+            font-style: italic;
+            font-size: 1.5rem;
+        }
+
+        .stat-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: var(--secondary);
+            font-size: 0.7rem;
+            border-radius: 3px;
+            margin-left: 10px;
+            vertical-align: middle;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        .leaderboard-table tr:hover td {
+            background: rgba(197, 160, 89, 0.1);
+        }
+
+        .fade-in {
+            animation: fadeIn 1s ease forwards;
+        }
+
+        .delay-1 { animation-delay: 0.2s; opacity: 0; }
+        .delay-2 { animation-delay: 0.4s; opacity: 0; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+
+</head>
+
+
+<body>
+    <div id="app-root"></div>
+    <script>
+        (function() {
+            const _dec_h = (s) => new TextDecoder().decode(Uint8Array.from(atob(s), c => c.charCodeAt(0)));
+            document.getElementById('app-root').innerHTML = _dec_h("CgogICAgPGRpdiBjbGFzcz0icmFua2luZy1jb250YWluZXIgZmFkZS1pbiI+CiAgICAgICAgPGgxIGNsYXNzPSJmYWRlLWluIGRlbGF5LTEiPkxlYWRlcmJvYXJkPC9oMT4KICAgICAgICA8cCBjbGFzcz0ic3VidGl0bGUgZmFkZS1pbiBkZWxheS0yIj5UaGUgR3JlYXRlc3QgRXhwbG9yZXJzIG9mIHRoZSBOZXcgV29ybGQ8L3A+CgoKICAgICAgICA8ZGl2IGlkPSJsb2FkaW5nLW92ZXJsYXkiPlNjb3VyaW5nIHRoZSBhcmNoaXZlcy4uLjwvZGl2PgoKICAgICAgICA8dGFibGUgaWQ9ImxlYWRlcmJvYXJkLXRhYmxlIiBjbGFzcz0ibGVhZGVyYm9hcmQtdGFibGUgaGlkZGVuIj4KICAgICAgICAgICAgPHRoZWFkPgogICAgICAgICAgICAgICAgPHRyPgogICAgICAgICAgICAgICAgICAgIDx0aCBjbGFzcz0icmFuay1jb2wiPlJhbms8L3RoPgogICAgICAgICAgICAgICAgICAgIDx0aCBjbGFzcz0ibmFtZS1jb2wiPkV4cGxvcmVyPC90aD4KICAgICAgICAgICAgICAgICAgICA8dGggY2xhc3M9InNjb3JlLWNvbCI+UHJlc3RpZ2UgU2NvcmU8L3RoPgogICAgICAgICAgICAgICAgPC90cj4KICAgICAgICAgICAgPC90aGVhZD4KICAgICAgICAgICAgPHRib2R5IGlkPSJsZWFkZXJib2FyZC1ib2R5Ij4KICAgICAgICAgICAgICAgIDwhLS0gRGF0YSB3aWxsIGJlIGluamVjdGVkIGhlcmUgLS0+CiAgICAgICAgICAgIDwvdGJvZHk+CiAgICAgICAgPC90YWJsZT4KCiAgICAgICAgPGRpdiBzdHlsZT0idGV4dC1hbGlnbjogY2VudGVyOyI+CiAgICAgICAgICAgIDxhIGhyZWY9Ii4uL2luZGV4Lmh0bWwiIGNsYXNzPSJidG4tcHJlbWl1bSBidG4tYmFjayI+UmV0dXJuIHRvIEV4cGVkaXRpb248L2E+CiAgICAgICAgPC9kaXY+CiAgICA8L2Rpdj4KCiAgICA8Zm9vdGVyIGNsYXNzPSJnYW1lLWZvb3RlciI+CiAgICAgICAgPHA+Q09OUVVFU1QgJmJ1bGw7ICZjb3B5OyAyMDI2IEJhbmFuYSBCYWxsZXJzPC9wPgogICAgPC9mb290ZXI+CgogICAgCg==");
+        })();
+    </script>
+    <script type="module" src="script.js"></script>
+</body>
+
+
+</html>
