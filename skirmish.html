@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skirmish Frame</title>
+    <style>
+        :root {
+            --primary: #c5a059;
+            --secondary: #b22222;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: transparent;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Outfit', sans-serif;
+            color: #fff;
+        }
+
+        .skirmish-header {
+            margin-top: 50px;
+            text-align: center;
+        }
+
+        .battlefield-3d {
+            position: relative;
+            width: 600px;
+            height: 400px;
+            margin-top: 50px;
+            perspective: 800px;
+            transform-style: preserve-3d;
+            background: radial-gradient(circle at center, rgba(34, 0, 0, 0.8) 0%, transparent 80%);
+            border-bottom: 2px solid rgba(255, 0, 0, 0.3);
+            pointer-events: none;
+        }
+
+        #cannon-line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 10px;
+            background: var(--primary);
+            box-shadow: 0 0 20px var(--primary);
+        }
+
+        .skirmish-enemy {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: url('imgs/native.png') center/cover;
+            image-rendering: pixelated;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: crosshair;
+            transition: transform 0.1s;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+            pointer-events: auto;
+            /* Clickable elements */
+        }
+
+        .skirmish-enemy:hover {
+            transform: scale(1.1) translateY(-5px);
+            box-shadow: 0 15px 30px rgba(255, 0, 0, 0.5);
+        }
+
+        .explosion {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, #ffaa00, #ff0000, transparent);
+            border-radius: 50%;
+            animation: explodeAnim 0.5s ease-out forwards;
+            pointer-events: none;
+        }
+
+        .cannon-ball {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 15px #fff, 0 0 30px #ffaa00;
+            pointer-events: none;
+            transition: top 0.1s linear, left 0.1s linear;
+        }
+
+        @keyframes explodeAnim {
+            0% {
+                transform: scale(0.5);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(3);
+                opacity: 0;
+            }
+        }
+
+        .floating-text {
+            position: absolute;
+            color: var(--primary);
+            font-weight: bold;
+            font-size: 1.5rem;
+            pointer-events: none;
+            animation: floatUp 1s ease-out forwards;
+            text-shadow: 0 2px 5px #000;
+        }
+
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-30px);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="skirmish-header">
+        <h2
+            style="color:red; font-size: 3rem; margin-bottom: 5px; font-family: 'Cormorant Garamond', serif; letter-spacing: 2px;">
+            AMBUSH!</h2>
+        <p style="color:#eacb88; font-size: 1.1rem; text-shadow: 0 2px 4px #000;">Fire cannons to capture them as allies
+            before they break the line!</p>
+        <div style="font-size: 1.5rem; color: var(--primary); margin-top: 15px; text-shadow: 0 2px 4px #000;">
+            Enemies Approaching: <span id="skirmish-enemies">15</span>
+        </div>
+    </div>
+    <div id="skirmish-battlefield" class="battlefield-3d">
+        <div id="cannon-line"></div>
+    </div>
+
+    <script>
+        const field = document.getElementById('skirmish-battlefield');
+        const enemiesRemaining = document.getElementById('skirmish-enemies');
+
+        let spawnIntervalId;
+        let gameLoopId;
+        let enemies = [];
+        let isEnding = false;
+
+        let lostMen = 0;
+        let lostMorale = 0;
+        let gainedAllies = 0;
+        let enemiesToComplete = 15;
+
+        enemiesRemaining.innerText = enemiesToComplete;
+
+        function endGame() {
+            if (isEnding) return;
+            isEnding = true;
+            clearInterval(spawnIntervalId);
+            cancelAnimationFrame(gameLoopId);
+
+            window.parent.postMessage({
+                type: 'SKIRMISH_END',
+                lostMen: lostMen,
+                lostMorale: lostMorale,
+                gainedAllies: gainedAllies
+            }, '*');
+        }
+
+        function fireCannonAt(x, y, onHit) {
+            const ball = document.createElement('div');
+            ball.className = 'cannon-ball';
+            ball.style.left = '300px';
+            ball.style.top = '390px';
+            field.appendChild(ball);
+
+            setTimeout(() => {
+                ball.style.left = (x + 25) + 'px';
+                ball.style.top = (y + 30) + 'px';
+            }, 10);
+
+            setTimeout(() => {
+                ball.remove();
+                onHit();
+            }, 120);
+        }
+
+        const spawnEnemy = () => {
+            if (enemiesToComplete <= 0 || isEnding) return;
+
+            const el = document.createElement('div');
+            el.className = 'skirmish-enemy';
+            const startX = Math.random() * 540;
+            el.style.left = startX + 'px';
+            el.style.top = '-60px';
+            el.style.transform = `translateZ(${Math.random() * 100 - 50}px)`;
+
+            field.appendChild(el);
+
+            const enemyObj = {
+                el: el,
+                x: startX,
+                y: -60,
+                speed: 0.3 + Math.random() * 0.5
+            };
+            enemies.push(enemyObj);
+
+            el.onclick = () => {
+                if (isEnding || enemyObj.dead) return;
+                enemyObj.dead = true;
+
+                fireCannonAt(enemyObj.x, enemyObj.y, () => {
+                    el.remove();
+                    enemies = enemies.filter(e => e !== enemyObj);
+
+                    const exp = document.createElement('div');
+                    exp.className = 'explosion';
+                    exp.style.left = enemyObj.x + 'px';
+                    exp.style.top = enemyObj.y + 'px';
+                    field.appendChild(exp);
+                    setTimeout(() => exp.remove(), 500);
+
+                    gainedAllies += 1;
+                    const allyText = document.createElement('div');
+                    allyText.className = 'floating-text';
+                    allyText.innerText = '+1 Ally';
+                    allyText.style.left = (enemyObj.x + 10) + 'px';
+                    allyText.style.top = enemyObj.y + 'px';
+                    field.appendChild(allyText);
+                    setTimeout(() => allyText.remove(), 1000);
+
+                    enemiesToComplete--;
+                    enemiesRemaining.innerText = Math.max(0, enemiesToComplete);
+                    if (enemiesToComplete <= 0) setTimeout(endGame, 1000);
+                });
+            };
+        };
+
+        spawnIntervalId = setInterval(spawnEnemy, 1200);
+
+        const loop = () => {
+            if (isEnding) return;
+
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const e = enemies[i];
+                if (e.dead) continue;
+
+                e.y += e.speed;
+                e.el.style.top = e.y + 'px';
+
+                if (e.y > 340) {
+                    lostMen += 2;
+                    lostMorale += 1;
+
+                    e.el.remove();
+                    enemies.splice(i, 1);
+
+                    enemiesToComplete--;
+                    enemiesRemaining.innerText = Math.max(0, enemiesToComplete);
+                    if (enemiesToComplete <= 0) setTimeout(endGame, 1000);
+                }
+            }
+
+            if (enemiesToComplete > 0 && !isEnding) {
+                gameLoopId = requestAnimationFrame(loop);
+            }
+        };
+
+        gameLoopId = requestAnimationFrame(loop);
+
+        setTimeout(() => { if (!isEnding) endGame(); }, 45000);
+    </script>
+</body>
+
+</html>
